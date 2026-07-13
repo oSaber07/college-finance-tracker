@@ -129,6 +129,21 @@
                 <p class="settings-status" id="currencyStatus"></p>
             </section>
 
+            <section class="settings-card">
+                <span class="settings-card-title">Sounds</span>
+                <p class="settings-card-desc">Mute the payment fanfare and confirmation sounds across the app.</p>
+
+                <label class="toggle-row" for="muteSoundsToggle">
+                    <span class="toggle-row-label">Mute All Sounds</span>
+                    <span class="toggle-switch">
+                        <input type="checkbox" id="muteSoundsToggle">
+                        <span class="toggle-slider"></span>
+                    </span>
+                </label>
+
+                <p class="settings-status" id="soundStatus"></p>
+            </section>
+
             <section class="settings-card danger-card">
                 <span class="settings-card-title">Danger Zone</span>
                 <p class="settings-card-desc">These actions are permanent and can't be undone.</p>
@@ -338,6 +353,29 @@
                 setStatus(currencyStatus, 'Currency saved. It will be reflected across the app.', false);
             } else {
                 setStatus(currencyStatus, response.error, true);
+            }
+        });
+
+        const muteSoundsToggle = document.getElementById('muteSoundsToggle');
+        const soundStatus = document.getElementById('soundStatus');
+
+        async function loadSoundSetting() {
+            const result = await window.electronAPI.getUserData('soundsMuted');
+            const muted = result.success && result.value === true;
+            muteSoundsToggle.checked = muted;
+            localStorage.setItem('soundsMuted', muted ? 'true' : 'false');
+        }
+        loadSoundSetting();
+
+        muteSoundsToggle.addEventListener('change', async () => {
+            const muted = muteSoundsToggle.checked;
+            localStorage.setItem('soundsMuted', muted ? 'true' : 'false');
+
+            const response = await window.electronAPI.setUserData('soundsMuted', muted);
+            if (response.success) {
+                setStatus(soundStatus, muted ? 'All sounds muted.' : 'Sounds enabled.', false);
+            } else {
+                setStatus(soundStatus, response.error, true);
             }
         });
 

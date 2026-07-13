@@ -636,3 +636,87 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     font-weight: 500;
     color: #ffffff;
 }
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 30;
+}
+
+.modal-overlay.visible {
+    display: flex;
+}
+
+.modal-card {
+    background-color: #1a1a1e;
+    border: 1px solid #26262b;
+    border-radius: 12px;
+    padding: 24px;
+    width: 360px;
+    max-width: 90vw;
+    box-sizing: border-box;
+}
+
+.congrats-modal-card {
+    text-align: center;
+    overflow: hidden;
+    position: relative;
+}
+
+.congrats-icon {
+    font-size: 40px;
+    margin-bottom: 4px;
+}
+
+.congrats-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #4ade80;
+    margin-bottom: 8px;
+}
+
+.congrats-subtitle {
+    font-size: 13px;
+    color: #a1a1aa;
+    margin-bottom: 0;
+}
+
+.confetti-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 60;
+}
+
+.confetti-piece {
+    position: absolute;
+    top: -20px;
+    width: 8px;
+    height: 14px;
+    opacity: 0.9;
+    animation-name: confetti-fall;
+    animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    animation-iteration-count: 1;
+}
+
+@keyframes confetti-fall {
+    0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(105vh) rotate(540deg);
+        opacity: 0.4;
+    }
+}

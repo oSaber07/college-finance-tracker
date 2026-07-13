@@ -1,13 +1,14 @@
 {
   "name": "collegefinance",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "main.js",
   "scripts": {
     "start": "nodemon --watch main.js --watch index.html --watch style.css --exec npx electron .",
     "dist": "electron-builder"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.43.0"
+    "@supabase/supabase-js": "^2.43.0",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "electron": "^30.0.0",
@@ -30,5 +31,8 @@
     "linux": {
       "target": "AppImage"
     }
+  },
+  "allowScripts": {
+    "electron@30.5.1": true
   }
 }

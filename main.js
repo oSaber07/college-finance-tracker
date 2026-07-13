@@ -5,7 +5,12 @@ const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = 'https://jdgrwlxstdzgwrhiaonw.supabase.co/';
 const SUPABASE_ANON_KEY = 'sb_publishable_7cnTpTElvfwHg5ntibQlNw_ntBGVv8k';
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const WebSocket = require('ws');
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    realtime: {
+        transport: WebSocket
+    }
+});
 
 const PROTOCOL = 'collegefinance';
 
@@ -75,6 +80,12 @@ if (!gotTheLock) {
             width: 800,
             height: 600,
             backgroundColor: '#0a0a0c',
+            titleBarStyle: 'hidden',
+            titleBarOverlay: {
+                color: '#0a0a0c',
+                symbolColor: '#ffffff',
+                height: 32
+            },
             webPreferences: {
                 contextIsolation: true,
                 nodeIntegration: false,

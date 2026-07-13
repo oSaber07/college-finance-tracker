@@ -2,10 +2,7 @@ const CURRENCY_SYMBOLS = {
     USD: '$',
     EUR: '€',
     GBP: '£',
-    CAD: '$',
-    AUD: '$',
-    JPY: '¥',
-    INR: '₹'
+    CAD: '$'
 };
 
 function getCurrencyCode() {

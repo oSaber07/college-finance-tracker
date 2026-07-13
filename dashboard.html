@@ -695,9 +695,18 @@
             return [...INCOME_DEFAULT_CATEGORIES, ...custom];
         }
 
-        async function getFinancialStats() {
+        let financialStatsCache = null;
+
+        async function getFinancialStats(forceRefresh = false) {
+            if (!forceRefresh && financialStatsCache) {
+                return financialStatsCache;
+            }
+
             const setupResponse = await window.electronAPI.getUserData('financial_setup');
-            if (!setupResponse.success || !setupResponse.value) return null;
+            if (!setupResponse.success || !setupResponse.value) {
+                financialStatsCache = null;
+                return null;
+            }
 
             const data = setupResponse.value;
             const purchases = await loadPurchases();
@@ -761,13 +770,14 @@
             const surplusDeficit = (expectedSpendToDate - totalSpentBeforeToday) - totalSpentOnGoals;
             const isSurplus = surplusDeficit >= 0;
 
-            return {
+            financialStatsCache = {
                 data, purchases, todayStr, isBeforeStart, isAfterEnd, isBreak,
                 days, weeks, months, totalIn, totalOut, netRemaining, totalSpent,
                 daysRemaining, dailySafeSpend, currentNetRunway, runwayRemainingPercent,
                 surplusDeficit, isSurplus, totalPendingReimbursements, roundedWeekday, roundedWeekend, weightFactor,
                 incomeEntries, totalIncomeLogged
             };
+            return financialStatsCache;
         }
 
         function escapeHtml(str) {
@@ -877,9 +887,9 @@
             `;
         }
 
-        async function loadDailySpendCard() {
+        async function loadDailySpendCard(forceRefresh = false) {
             const container = document.getElementById('dailySpendCard');
-            const stats = await getFinancialStats();
+            const stats = await getFinancialStats(forceRefresh);
 
             if (!stats) {
                 container.innerHTML = `
@@ -1232,7 +1242,7 @@
                         lastDeletedPurchaseIndex = pIndex;
                         purchases.splice(pIndex, 1);
                         await savePurchases(purchases);
-                        loadDailySpendCard();
+                        loadDailySpendCard(true);
                         loadSemesterSummary();
                         loadGoalCard();
                         showUndoToast('purchase');
@@ -1259,7 +1269,7 @@
                         lastDeletedIncomeIndex = iIndex;
                         incomeEntries.splice(iIndex, 1);
                         await saveIncome(incomeEntries);
-                        loadDailySpendCard();
+                        loadDailySpendCard(true);
                         loadSemesterSummary();
                         loadGoalCard();
                         showUndoToast('income');
@@ -1277,7 +1287,7 @@
                             item.reimbursementSettled = true;
                             await savePurchases(purchases);
                             loadSemesterSummary();
-                            loadDailySpendCard();
+                            loadDailySpendCard(true);
                             loadGoalCard();
                         }
                     }
@@ -1369,7 +1379,7 @@
 
             await saveGoalData(currentGoalData);
 
-            loadDailySpendCard();
+            loadDailySpendCard(true);
             loadSemesterSummary();
             loadGoalCard();
             showUndoToast(createPurchase ? 'goal' : 'goalDelete');
@@ -1584,7 +1594,7 @@
                     await savePurchases(updatedPurchases);
                 }
                 
-                loadDailySpendCard();
+                loadDailySpendCard(true);
                 loadSemesterSummary();
                 loadGoalCard();
                 
@@ -1596,7 +1606,7 @@
                 purchases.splice(lastDeletedPurchaseIndex, 0, lastDeletedPurchase);
                 await savePurchases(purchases);
                 
-                loadDailySpendCard();
+                loadDailySpendCard(true);
                 loadSemesterSummary();
                 loadGoalCard();
                 
@@ -1607,7 +1617,7 @@
                 incomeEntries.splice(lastDeletedIncomeIndex, 0, lastDeletedIncome);
                 await saveIncome(incomeEntries);
 
-                loadDailySpendCard();
+                loadDailySpendCard(true);
                 loadSemesterSummary();
                 loadGoalCard();
 
@@ -1620,7 +1630,7 @@
                 await saveCustomCategories(customCategories);
 
                 await renderCategoryTags(true);
-                loadDailySpendCard();
+                loadDailySpendCard(true);
 
                 document.getElementById('undoToast').classList.remove('visible');
                 lastDeletedCategory = null;
@@ -1631,7 +1641,7 @@
                 await saveCustomIncomeCategories(customIncomeCategories);
 
                 await renderIncomeCategoryTags(true);
-                loadDailySpendCard();
+                loadDailySpendCard(true);
 
                 document.getElementById('undoToast').classList.remove('visible');
                 lastDeletedIncomeCategory = null;
@@ -1645,7 +1655,7 @@
                 deleteSteadyIncomeBtn.style.display = lastDeletedSteadyIncome.jobName ? 'inline-block' : 'none';
                 setSteadyIncomeExpanded(!!lastDeletedSteadyIncome.jobName);
 
-                loadDailySpendCard();
+                loadDailySpendCard(true);
                 loadSemesterSummary();
                 loadGoalCard();
 
@@ -1658,7 +1668,7 @@
                 await saveSubscriptions(subscriptions);
 
                 await renderSubscriptionList();
-                loadDailySpendCard();
+                loadDailySpendCard(true);
                 loadSemesterSummary();
                 loadGoalCard();
 
@@ -1973,7 +1983,7 @@
                     customCategories.splice(cIndex, 1);
                     await saveCustomCategories(customCategories);
                     await renderCategoryTags(true);
-                    loadDailySpendCard();
+                    loadDailySpendCard(true);
                     showUndoToast('category');
                 });
             });
@@ -2030,7 +2040,7 @@
                     customIncomeCategories.splice(cIndex, 1);
                     await saveCustomIncomeCategories(customIncomeCategories);
                     await renderIncomeCategoryTags(true);
-                    loadDailySpendCard();
+                    loadDailySpendCard(true);
                     showUndoToast('incomeCategory');
                 });
             });
@@ -2142,7 +2152,7 @@
             saveSubscriptionBtn.disabled = false;
             saveSubscriptionBtn.innerText = 'Add Subscription';
             await renderSubscriptionList();
-            loadDailySpendCard();
+            loadDailySpendCard(true);
             loadSemesterSummary();
             loadGoalCard();
         });
@@ -2272,9 +2282,10 @@
             submitPurchaseBtn.disabled = false;
             submitPurchaseBtn.innerText = isEditing ? 'Save Changes' : 'Log Purchase';
             closePurchaseModal();
-            loadDailySpendCard();
+            loadDailySpendCard(true);
             loadSemesterSummary();
             loadGoalCard();
+            if (!isEditing) playPurchaseLoggedSound();
         });
 
         const incomeModalOverlay = document.getElementById('incomeModalOverlay');
@@ -2389,7 +2400,7 @@
             submitIncomeBtn.disabled = false;
             submitIncomeBtn.innerText = isEditing ? 'Save Changes' : 'Log Income';
             closeIncomeModal();
-            loadDailySpendCard();
+            loadDailySpendCard(true);
             loadSemesterSummary();
             loadGoalCard();
             showIncomeCongrats();
@@ -2429,7 +2440,7 @@
             saveSteadyIncomeBtn.disabled = false;
             saveSteadyIncomeBtn.innerText = 'Save Steady Income';
             closeIncomeModal();
-            loadDailySpendCard();
+            loadDailySpendCard(true);
             loadSemesterSummary();
             loadGoalCard();
             showIncomeCongrats();
@@ -2447,7 +2458,7 @@
             deleteSteadyIncomeBtn.style.display = 'none';
             setSteadyIncomeExpanded(false);
 
-            loadDailySpendCard();
+            loadDailySpendCard(true);
             loadSemesterSummary();
             loadGoalCard();
             showUndoToast('steadyIncome');
@@ -2491,6 +2502,7 @@
 
             congratsModalOverlay.classList.add('visible');
             launchConfetti();
+            playFanfareSound();
         }
 
         function closeCongratsModal() {
@@ -2530,6 +2542,14 @@
 
         let paymentAudioCtx = null;
 
+        document.addEventListener('click', function unlockPaymentAudio() {
+            if (!paymentAudioCtx) {
+                paymentAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (paymentAudioCtx.state === 'suspended') paymentAudioCtx.resume();
+            document.removeEventListener('click', unlockPaymentAudio);
+        }, { once: true });
+
         function playBrassNote(ctx, freq, startTime, length, peakGain) {
             const filter = ctx.createBiquadFilter();
             filter.type = 'lowpass';
@@ -2559,6 +2579,7 @@
         }
 
         function playFanfareSound() {
+            if (localStorage.getItem('soundsMuted') === 'true') return;
             try {
                 if (!paymentAudioCtx) {
                     paymentAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2575,6 +2596,20 @@
                 notes.forEach(({ freq, start, length, gain }) => {
                     playBrassNote(ctx, freq, ctx.currentTime + start, length, gain);
                 });
+            } catch (e) {
+            }
+        }
+
+        function playPurchaseLoggedSound() {
+            if (localStorage.getItem('soundsMuted') === 'true') return;
+            try {
+                if (!paymentAudioCtx) {
+                    paymentAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const ctx = paymentAudioCtx;
+                if (ctx.state === 'suspended') ctx.resume();
+
+                playBrassNote(ctx, 493.88, ctx.currentTime, 0.12, 0.10);
             } catch (e) {
             }
         }
@@ -2697,7 +2732,7 @@
 
         processSteadyIncomePaydays().then((result) => {
             loadSemesterSummary();
-            loadDailySpendCard();
+            loadDailySpendCard(true);
             loadGoalCard();
 
             if (result && result.count > 0) {
@@ -2710,7 +2745,7 @@
 
         processSubscriptionPayments().then((result) => {
             loadSemesterSummary();
-            loadDailySpendCard();
+            loadDailySpendCard(true);
             loadGoalCard();
 
             if (result && result.count > 0) {

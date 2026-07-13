@@ -856,6 +856,14 @@
 
         let paymentAudioCtx = null;
 
+        document.addEventListener('click', function unlockPaymentAudio() {
+            if (!paymentAudioCtx) {
+                paymentAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (paymentAudioCtx.state === 'suspended') paymentAudioCtx.resume();
+            document.removeEventListener('click', unlockPaymentAudio);
+        }, { once: true });
+
         function playBrassNote(ctx, freq, startTime, length, peakGain) {
             const filter = ctx.createBiquadFilter();
             filter.type = 'lowpass';
@@ -885,6 +893,7 @@
         }
 
         function playPaymentSound() {
+            if (localStorage.getItem('soundsMuted') === 'true') return;
             try {
                 if (!paymentAudioCtx) {
                     paymentAudioCtx = new (window.AudioContext || window.webkitAudioContext)();

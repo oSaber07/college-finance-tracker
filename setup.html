@@ -219,6 +219,16 @@
         </section>
     </div>
 
+    <div class="modal-overlay" id="setupCompleteOverlay">
+        <div class="modal-card congrats-modal-card">
+            <div class="congrats-icon">🎉</div>
+            <div class="congrats-title">You're all set!</div>
+            <p class="congrats-subtitle">Your financial plan is ready. Taking you to your dashboard...</p>
+        </div>
+    </div>
+
+    <div class="confetti-container" id="confettiContainer"></div>
+
     <script>
         const state = {
             schoolName: '',
@@ -244,6 +254,82 @@
         function toWeeklyEquivalent(amount, frequency) {
             const perYear = PAY_PERIODS_PER_YEAR[frequency] || 52;
             return (Number(amount) || 0) * perYear / 52;
+        }
+
+        function fireConfetti() {
+            const container = document.getElementById('confettiContainer');
+            container.innerHTML = '';
+            const colors = ['#6366f1', '#3b82f6', '#4ade80', '#eab308', '#ec4899', '#a855f7'];
+            for (let i = 0; i < 60; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.left = Math.random() * 100 + 'vw';
+                piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                piece.style.animationDelay = Math.random() * 2 + 's';
+                piece.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                container.appendChild(piece);
+            }
+            setTimeout(() => { container.innerHTML = ''; }, 4000);
+        }
+
+        let paymentAudioCtx = null;
+
+        document.addEventListener('click', function unlockPaymentAudio() {
+            if (!paymentAudioCtx) {
+                paymentAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (paymentAudioCtx.state === 'suspended') paymentAudioCtx.resume();
+            document.removeEventListener('click', unlockPaymentAudio);
+        }, { once: true });
+
+        function playBrassNote(ctx, freq, startTime, length, peakGain) {
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 2200;
+            filter.Q.value = 0.7;
+
+            const gainNode = ctx.createGain();
+            filter.connect(gainNode);
+            gainNode.connect(ctx.destination);
+
+            [-4, 4].forEach((detuneCents) => {
+                const osc = ctx.createOscillator();
+                osc.type = 'sawtooth';
+                osc.frequency.value = freq;
+                osc.detune.value = detuneCents;
+                osc.connect(filter);
+                osc.start(startTime);
+                osc.stop(startTime + length + 0.05);
+            });
+
+            const attack = 0.03;
+            const release = length * 0.55;
+            gainNode.gain.setValueAtTime(0.0001, startTime);
+            gainNode.gain.exponentialRampToValueAtTime(peakGain, startTime + attack);
+            gainNode.gain.setValueAtTime(peakGain, startTime + length - release);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + length);
+        }
+
+        function playFanfareSound() {
+            if (localStorage.getItem('soundsMuted') === 'true') return;
+            try {
+                if (!paymentAudioCtx) {
+                    paymentAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const ctx = paymentAudioCtx;
+                if (ctx.state === 'suspended') ctx.resume();
+
+                const notes = [
+                    { freq: 392.00, start: 0,    length: 0.16, gain: 0.16 },
+                    { freq: 523.25, start: 0.18, length: 0.16, gain: 0.16 },
+                    { freq: 659.25, start: 0.36, length: 0.5,  gain: 0.20 }
+                ];
+
+                notes.forEach(({ freq, start, length, gain }) => {
+                    playBrassNote(ctx, freq, ctx.currentTime + start, length, gain);
+                });
+            } catch (e) {
+            }
         }
 
         let currentStep = 1;
@@ -319,7 +405,7 @@
                     
                     debounceTimer = setTimeout(async () => {
                         try {
-                            const response = await fetch(`http://universities.hipolabs.com/search?name=${encodeURIComponent(val)}&country=United+States`);
+                            const response = await fetch(`http://universities.hipolabs.com/search?name=${encodeURIComponent(val)}`);
                             const data = await response.json();
                             
                             suggestionsList.innerHTML = '';
@@ -601,8 +687,16 @@
         });
 
         finishBtn.addEventListener('click', async () => {
+            finishBtn.disabled = true;
             await window.electronAPI.setUserData('financial_setup', state);
-            window.electronAPI.changePage('dashboard.html');
+
+            document.getElementById('setupCompleteOverlay').classList.add('visible');
+            fireConfetti();
+            playFanfareSound();
+
+            setTimeout(() => {
+                window.electronAPI.changePage('dashboard.html');
+            }, 2600);
         });
 
         skipLink.addEventListener('click', () => {

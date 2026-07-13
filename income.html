@@ -570,6 +570,66 @@
             setTimeout(() => { container.innerHTML = ''; }, 4000);
         }
 
+        let paymentAudioCtx = null;
+
+        document.addEventListener('click', function unlockPaymentAudio() {
+            if (!paymentAudioCtx) {
+                paymentAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (paymentAudioCtx.state === 'suspended') paymentAudioCtx.resume();
+            document.removeEventListener('click', unlockPaymentAudio);
+        }, { once: true });
+
+        function playBrassNote(ctx, freq, startTime, length, peakGain) {
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 2200;
+            filter.Q.value = 0.7;
+
+            const gainNode = ctx.createGain();
+            filter.connect(gainNode);
+            gainNode.connect(ctx.destination);
+
+            [-4, 4].forEach((detuneCents) => {
+                const osc = ctx.createOscillator();
+                osc.type = 'sawtooth';
+                osc.frequency.value = freq;
+                osc.detune.value = detuneCents;
+                osc.connect(filter);
+                osc.start(startTime);
+                osc.stop(startTime + length + 0.05);
+            });
+
+            const attack = 0.03;
+            const release = length * 0.55;
+            gainNode.gain.setValueAtTime(0.0001, startTime);
+            gainNode.gain.exponentialRampToValueAtTime(peakGain, startTime + attack);
+            gainNode.gain.setValueAtTime(peakGain, startTime + length - release);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + length);
+        }
+
+        function playFanfareSound() {
+            if (localStorage.getItem('soundsMuted') === 'true') return;
+            try {
+                if (!paymentAudioCtx) {
+                    paymentAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const ctx = paymentAudioCtx;
+                if (ctx.state === 'suspended') ctx.resume();
+
+                const notes = [
+                    { freq: 392.00, start: 0,    length: 0.16, gain: 0.16 },
+                    { freq: 523.25, start: 0.18, length: 0.16, gain: 0.16 },
+                    { freq: 659.25, start: 0.36, length: 0.5,  gain: 0.20 }
+                ];
+
+                notes.forEach(({ freq, start, length, gain }) => {
+                    playBrassNote(ctx, freq, ctx.currentTime + start, length, gain);
+                });
+            } catch (e) {
+            }
+        }
+
         const congratsTitleText = document.getElementById('congratsTitleText');
         const congratsSubtitleText = document.getElementById('congratsSubtitleText');
         const congratsLimits = document.getElementById('congratsLimits');
@@ -607,6 +667,7 @@
 
             congratsModalOverlay.classList.add('visible');
             fireConfetti();
+            playFanfareSound();
         }
 
         document.getElementById('closeCongratsBtn').addEventListener('click', () => {
